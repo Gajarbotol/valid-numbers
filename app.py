@@ -1,9 +1,9 @@
-from flask import Flask, send_file, jsonify, render_template_string
-import threading
 import os
+import threading
 import random
 import requests
 import time
+from flask import Flask, send_file, jsonify, render_template_string
 
 app = Flask(__name__)
 
@@ -193,5 +193,5 @@ def write_names_and_numbers_to_file(details_list):
             file.write(f"   name - {details['name']}\n\n")
 
 if __name__ == '__main__':
-       port = int(os.environ.get("PORT", 5000))
-       app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 5000))  # Use the PORT environment variable
+    app.run(host='0.0.0.0', port=port)
