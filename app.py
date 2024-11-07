@@ -3,6 +3,7 @@ import threading
 import random
 import requests
 import time
+import logging
 from flask import Flask, send_file, jsonify, render_template_string
 
 app = Flask(__name__)
@@ -14,6 +15,13 @@ valid_numbers_count = 0
 # Directory to store files
 storage_dir = "storage"
 os.makedirs(storage_dir, exist_ok=True)
+
+# Configure logging
+log_file_path = os.path.join(storage_dir, "app.log")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
+    logging.FileHandler(log_file_path),
+    logging.StreamHandler()
+])
 
 @app.route('/')
 def home():
@@ -45,6 +53,15 @@ def home():
                 #progress {
                     margin-top: 20px;
                 }
+                #logs {
+                    background-color: #111;
+                    color: #0f0;
+                    padding: 10px;
+                    margin-top: 20px;
+                    max-height: 300px;
+                    overflow-y: scroll;
+                    border: 1px solid #00ff00;
+                }
             </style>
             <script>
                 function updateProgress() {
@@ -54,7 +71,15 @@ def home():
                             document.getElementById('progress').innerText = "Valid Numbers Found: " + data.valid_numbers_count;
                         });
                 }
+                function updateLogs() {
+                    fetch('/logs')
+                        .then(response => response.text())
+                        .then(data => {
+                            document.getElementById('logs').innerText = data;
+                        });
+                }
                 setInterval(updateProgress, 5000); // Update every 5 seconds
+                setInterval(updateLogs, 5000); // Update logs every 5 seconds
             </script>
         </head>
         <body>
@@ -66,6 +91,7 @@ def home():
                 <button type="submit">Download Names with Numbers</button>
             </form>
             <div id="progress">Valid Numbers Found: 0</div>
+            <div id="logs">Loading logs...</div>
         </body>
     </html>
     """
@@ -77,6 +103,7 @@ def start_validation():
     if not running:
         running = True
         threading.Thread(target=find_valid_phone_numbers, daemon=True).start()
+        logging.info("Phone number validation started.")
         return "Phone number validation started."
     return "Validation already running."
 
@@ -84,12 +111,18 @@ def start_validation():
 def stop_validation():
     global running
     running = False
+    logging.info("Phone number validation stopped.")
     return "Phone number validation stopped."
 
 @app.route('/progress')
 def progress():
     global valid_numbers_count
     return jsonify(valid_numbers_count=valid_numbers_count)
+
+@app.route('/logs')
+def logs():
+    with open(log_file_path, 'r') as log_file:
+        return log_file.read()
 
 @app.route('/download/valid_numbers')
 def download_valid_numbers():
@@ -132,6 +165,9 @@ def find_valid_phone_numbers():
                 # Write to files
                 write_valid_numbers_to_file(valid_numbers)
                 write_names_and_numbers_to_file(names_with_numbers)
+                logging.info(f"Found valid number: {phone_number}")
+            else:
+                logging.info(f"Invalid number: {phone_number}")
             time.sleep(1)  # Sleep to control the request rate
 
 def generate_phone_number(template, tried_numbers):
@@ -167,7 +203,7 @@ def validate_phone_number(phone_number):
         if response.status_code == 200:
             return True
     except requests.RequestException as e:
-        print(f"Request failed: {e}")
+        logging.error(f"Request failed: {e}")
     return False
 
 def fetch_user_details(valid_number):
@@ -178,7 +214,7 @@ def fetch_user_details(valid_number):
         if response.status_code == 200:
             return response.json()
     except requests.RequestException as e:
-        print(f"Request failed: {e}")
+        logging.error(f"Request failed: {e}")
     return None
 
 def write_valid_numbers_to_file(valid_numbers):
