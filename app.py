@@ -11,6 +11,10 @@ app = Flask(__name__)
 running = False
 valid_numbers_count = 0
 
+# Directory to store files
+storage_dir = "storage"
+os.makedirs(storage_dir, exist_ok=True)
+
 @app.route('/')
 def home():
     # HTML content with a hacker theme and download buttons
@@ -89,14 +93,14 @@ def progress():
 
 @app.route('/download/valid_numbers')
 def download_valid_numbers():
-    path = "/sdcard/valid_numbers.txt"
+    path = os.path.join(storage_dir, "valid_numbers.txt")
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
     return "File not found.", 404
 
 @app.route('/download/names_with_numbers')
 def download_names_with_numbers():
-    path = "/sdcard/names_with_numbers.txt"
+    path = os.path.join(storage_dir, "names_with_numbers.txt")
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
     return "File not found.", 404
@@ -179,14 +183,14 @@ def fetch_user_details(valid_number):
 
 def write_valid_numbers_to_file(valid_numbers):
     """Writes all valid numbers to a text file."""
-    file_path = "/sdcard/valid_numbers.txt"
+    file_path = os.path.join(storage_dir, "valid_numbers.txt")
     with open(file_path, "w") as file:
         for number in valid_numbers:
             file.write(f"{number}\n")
 
 def write_names_and_numbers_to_file(details_list):
     """Writes valid numbers with their names to a text file."""
-    file_path = "/sdcard/names_with_numbers.txt"
+    file_path = os.path.join(storage_dir, "names_with_numbers.txt")
     with open(file_path, "w") as file:
         for index, details in enumerate(details_list, start=1):
             file.write(f"{index}. number - {details['number']}\n")
